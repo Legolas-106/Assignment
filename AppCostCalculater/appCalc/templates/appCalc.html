@@ -1,0 +1,144 @@
+{% extends "home.html" %}
+{% load static %}
+{% block style %}
+    .box-area{
+        width: 920px;
+    }
+    .left-box{
+        background-image : url("{% static 'image/background_image.jpg' %}");
+    }
+{% endblock  %}
+{% block content %}
+
+<!-- Main Container -->
+<div class="container d-flex justify-content-center align-items-center min-vh-100 flex-column mainContainer">
+
+    <!-- App Container -->
+
+    <div class="row border rounded-5 p-3 bg-white shadow box-area">
+
+        <!-- Left Box -->
+
+        <div class="col-md-6 rounded-4 d-flex justify-content-center align-items-center flex-column left-box" style="background: #ADD8E6;">
+            <!-- <div class="featured-image mb-3"> -->
+                <!-- <img src="{% static 'images/background_image.jpg' %}" class="img-fluid" style="width: 250px;"/> -->
+                <p class="fs-2 text-center" style="font-family:'Courier New', Courier, monospace; font-weight: 600;">Anurag Mehar Assignment</p>
+            <!-- </div> -->
+
+            <!-- Right Box -->
+
+        </div>
+        <div class="col-md-6 right-box d-flex flex-column">
+            <div class="row align-items-center">
+                <div class="header-text mb-4">
+                    <h2 class="text-center">App Cost Calculater</h2>
+                    <p class="text-sm-center mb-2">Choose the desired options form below and then get your cost</p>
+                </div>
+                <div class="input-group mb-3 justify-cotent-center align-items-center flex-column w-100">
+                    <label for="appCategory" class="bg-black text-white p-2 w-100">App Category</label>
+                    <select id="appCategory" class="form-control form-control-lg bg-light fs-6 w-100" aria-placeholder="Please Choose a Category">
+                        <option value="" disabled selected>Choose an Option...</option>
+                        <option value="E-commerce">E-commerce</option>
+                        <option value="Cloud Kitchen">Cloud Kitchen</option>
+                        <option value="Social Media">Social Media</option>
+                    </select>
+                </div>
+                <div class="input-group mb-3 justify-cotent-center align-items-center flex-column w-100">
+                    <label for="appFeatures" class="bg-black text-white p-2 w-100">App Features</label>
+                    <select id="appFeatures" class="form-control form-control-lg bg-light fs-6 w-100" multiple aria-placeholder="Please Choose a Category">
+                        <option value="" disabled selected>Please Choose Category</option>
+                    </select>
+                </div>
+                <div class="input-group mb-3 justify-content-center">
+                    <button type="submit" class="btn btn-light w-100 fs-6" id="btn-submit"> Calculate Cost </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="container text-center p-5" id="resultContainer" style="width:920px;">
+    </div>
+</div>
+
+{% endblock  %}
+{%block javascript %}
+
+<script>
+    const csrfToken = "{{csrf_token}}";
+    $(document).ready(function(){
+        let features = {{features|safe}};
+        console.log(features);
+        $("#appCategory").change(function(){
+            let value = $("#appCategory").val();
+            let feats = features[value];
+            console.log(feats,typeof feats);
+            if(!feats){
+                alert("Please choose a valid App Category");
+                return false;
+            }
+            console.log(value);
+
+            let appFeats = $("#appFeatures");
+            appFeats.empty();
+            appFeats.append('<option val="" disabled selected>Choose...</option>');
+            $.each(feats,function(indx,feature){
+                let option = `<option val="${feature}">${feature}</option>`;
+                appFeats.append(option);
+            });
+            
+        });
+
+        $("#btn-submit").click(function(){
+            console.log("Hello Submit button is clicked");
+            console.log("Performing validation check");
+            let appCat = $("#appCategory").val();
+            let appFeats = $("#appFeatures").val();
+            console.log(appCat,appFeats);
+
+            if(!appCat){
+                alert("Please Select a valid App category");
+                return false;
+            }
+            if(appFeats.length === 0){
+                alert("Please select a valid app feature");
+                return false;
+            }
+
+
+            var data = {
+                "appCategory" : appCat,
+                "appFeatures" : appFeats,
+            }
+
+            console.log("Calling Ajax Call");
+            let url = "get_cost";
+            fetch(url, {
+                method: 'POST',   
+                headers: {       
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                },
+                body: JSON.stringify(data),  
+            })
+            .then(response => {
+                return response.json(); 
+            })
+            .then(data => {
+                const resultContainer = document.getElementById('resultContainer');
+                if (data.success) {
+                    // If the response is successful, display the total cost in the #resultContainer
+                    resultContainer.innerHTML = `<h2>Total Cost: $${data.cost}</h2>`;
+                } else {
+                    // If the response is unsuccessful, display the error message in the #resultContainer
+                    resultContainer.innerHTML = `<h2>Error: ${data.error}</h2>`;
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error); 
+                const resultContainer = document.getElementById('resultContainer');
+                resultContainer.innerHTML = `<h2>An error occurred while processing your request.</h2>`;
+            });
+            
+        });
+    });
+</script>
+{% endblock %}
